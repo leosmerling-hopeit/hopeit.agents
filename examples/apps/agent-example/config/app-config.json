@@ -1,0 +1,47 @@
+{
+  "app": {
+    "name": "agent-example",
+    "version": "${HOPEIT_APPS_API_VERSION}"
+  },
+  "plugins": [
+    { "name": "agents-model-client", "version": "0.1.0" },
+    { "name": "agents-mcp-bridge", "version": "0.1.0" }
+  ],
+  "engine": {
+    "import_modules": ["agent_example"],
+    "cors_origin": "*"
+  },
+  "settings": {
+    "model_client": {
+      "api_base": "${AGENT_MODEL_API_BASE:https://api.openai.com/v1}",
+      "api_key_env": "OPENAI_API_KEY",
+      "default_model": "gpt-4o-mini",
+      "timeout_seconds": 30.0,
+      "extra_headers": {
+        "OpenAI-Beta": "assistants=v1"
+      }
+    },
+    "mcp_bridge": {
+      "command": "uvx",
+      "args": ["python", "-m", "my_mcp_server"],
+      "env": {
+        "PYTHONPATH": "${AGENT_MCP_SERVER_PYTHONPATH:.}",
+        "MCP_RANDOM_SEED": "1234"
+      },
+      "tool_cache_seconds": 10.0,
+      "list_timeout_seconds": 5.0,
+      "call_timeout_seconds": 60.0
+    },
+    "agent": {
+      "system_prompt": "You are a helpful agent that can call tools via MCP.",
+      "enable_tools": true
+    }
+  },
+  "events": {
+    "run_agent": {
+      "type": "POST",
+      "route": "{app.name}/{app.version}/run-agent",
+      "setting_keys": ["model_client", "mcp_bridge", "agent"]
+    }
+  }
+}

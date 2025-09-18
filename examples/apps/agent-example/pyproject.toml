@@ -1,0 +1,36 @@
+[project]
+name = "agent-example"
+version = "0.1.0"
+
+description = "hopeit.agents example app"
+dynamic = ["readme"]
+
+dependencies = [
+    "hopeit.engine>=0.27.0",
+    "hopeit.agents-model-client",
+    "hopeit.agents-mcp-bridge",
+]
+
+license = { text = "Apache 2" }
+authors = [
+    { name = "hopeit.agents contributors", email = "opensource@hopeit.com.ar" }
+]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Framework :: AsyncIO",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+readme = { file = ["README.md"], content-type = "text/markdown" }
