@@ -1,8 +1,6 @@
-from __future__ import annotations
-
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Self, cast
 
 import pytest
 
@@ -29,7 +27,7 @@ class _FakeResponse:
     async def json(self) -> dict[str, Any]:
         return self._payload
 
-    async def __aenter__(self) -> _FakeResponse:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(
@@ -45,7 +43,7 @@ class _FakeSession:
     def __init__(self, response: _FakeResponse) -> None:
         self._response = response
 
-    async def __aenter__(self) -> _FakeSession:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(
@@ -69,7 +67,7 @@ async def test_async_model_client_complete_success(monkeypatch: pytest.MonkeyPat
     payload = {
         "id": "cmpl-123",
         "model": "test-model",
-        "created": int(datetime.now(timezone.utc).timestamp()),
+        "created": int(datetime.now(UTC).timestamp()),
         "choices": [
             {
                 "index": 0,
@@ -152,7 +150,7 @@ async def test_generate_event_invokes_client(monkeypatch: pytest.MonkeyPatch) ->
         return CompletionResponse(
             response_id="cmpl-xyz",
             model="mock-model",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             message=message,
             tool_calls=[ToolCall(call_id="tool-1", name="foo", arguments={})],
             conversation=payload.conversation.with_message(message),

@@ -1,7 +1,5 @@
 """Helpers to expose the random number tool as an MCP descriptor."""
 
-from __future__ import annotations
-
 from mcp import types
 
 

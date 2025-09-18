@@ -1,7 +1,5 @@
 """Async client that delegates MCP tool operations to the official SDK."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
@@ -53,7 +51,7 @@ class MCPBridgeClient:
                     session.list_tools(),
                     timeout=self._config.list_timeout_seconds,
                 )
-            except asyncio.TimeoutError as exc:
+            except TimeoutError as exc:
                 raise MCPBridgeError("Timed out listing tools") from exc
             except McpError as exc:  # pragma: no cover - depends on SDK runtime
                 error_details = {"error": exc.args}
@@ -80,7 +78,7 @@ class MCPBridgeClient:
                     session.call_tool(invocation.tool_name, invocation.arguments),
                     timeout=self._config.call_timeout_seconds,
                 )
-            except asyncio.TimeoutError as exc:
+            except TimeoutError as exc:
                 raise MCPBridgeError(f"Timed out calling tool '{invocation.tool_name}'") from exc
             except McpError as exc:  # pragma: no cover - depends on SDK runtime
                 raise MCPBridgeError(

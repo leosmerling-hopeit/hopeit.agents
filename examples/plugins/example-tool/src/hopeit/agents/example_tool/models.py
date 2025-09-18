@@ -1,7 +1,5 @@
 """Data objects for the example tool."""
 
-from __future__ import annotations
-
 from hopeit.dataobjects import dataclass, dataobject
 
 

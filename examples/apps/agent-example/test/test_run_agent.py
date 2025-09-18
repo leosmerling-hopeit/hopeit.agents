@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 
@@ -28,7 +26,7 @@ async def test_run_agent_without_tools(monkeypatch: pytest.MonkeyPatch) -> None:
         return CompletionResponse(
             response_id="cmpl-1",
             model="mock",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             message=message,
             tool_calls=[],
             conversation=conversation,
@@ -60,7 +58,7 @@ async def test_run_agent_with_tool(monkeypatch: pytest.MonkeyPatch) -> None:
         return CompletionResponse(
             response_id="cmpl-2",
             model="mock",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             message=assistant,
             tool_calls=[tool_call],
             conversation=conversation,

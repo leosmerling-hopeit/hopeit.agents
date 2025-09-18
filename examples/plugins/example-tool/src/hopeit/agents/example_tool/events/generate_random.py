@@ -1,7 +1,5 @@
 """Random number generator tool event."""
 
-from __future__ import annotations
-
 import random
 
 from hopeit.app.api import event_api

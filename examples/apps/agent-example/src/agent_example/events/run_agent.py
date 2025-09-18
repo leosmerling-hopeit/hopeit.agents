@@ -1,7 +1,5 @@
 """Run an agent conversation combining model completions and MCP tool calls."""
 
-from __future__ import annotations
-
 import json
 from collections.abc import Mapping
 from typing import Any, cast

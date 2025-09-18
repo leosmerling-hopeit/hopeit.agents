@@ -30,7 +30,7 @@ clean-env:
 install-dev: env
 	$(UV) sync --all-packages
 	for module in $(MODULES); do \
-		$(UV) pip install -U --no-deps -e $$module; \
+		$(UV) pip install -U --no-deps -e ./$$module; \
 	done
 
 format:

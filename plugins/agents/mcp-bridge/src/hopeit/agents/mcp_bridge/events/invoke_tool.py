@@ -1,7 +1,5 @@
 """Invoke an MCP tool and return its result."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, cast
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
 from types import SimpleNamespace

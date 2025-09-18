@@ -1,10 +1,8 @@
 """Async client to call OpenAI-compatible chat completion endpoints."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import aiohttp
@@ -156,9 +154,9 @@ class AsyncModelClient:
 
         created_raw = payload.get("created")
         created_at = (
-            datetime.fromtimestamp(created_raw, tz=timezone.utc)
+            datetime.fromtimestamp(created_raw, tz=UTC)
             if isinstance(created_raw, (int, float))
-            else datetime.now(timezone.utc)
+            else datetime.now(UTC)
         )
 
         return CompletionResponse(

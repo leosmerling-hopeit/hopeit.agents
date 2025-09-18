@@ -1,7 +1,5 @@
 """Settings helpers for the model client plugin."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any
 

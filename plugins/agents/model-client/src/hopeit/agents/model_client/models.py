@@ -1,9 +1,7 @@
 """Typed data objects used by the model client plugin."""
 
-from __future__ import annotations
-
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -59,9 +57,9 @@ class Conversation:
     messages: list[Message]
     agent_id: str | None = None
     session_id: str | None = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
-    def with_message(self, message: Message) -> Conversation:
+    def with_message(self, message: Message) -> "Conversation":
         """Return a new conversation with an additional message."""
         return Conversation(
             messages=[*self.messages, message],
