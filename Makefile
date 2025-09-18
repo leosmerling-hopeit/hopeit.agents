@@ -49,7 +49,7 @@ lint:
 
 test:
 	for module in $(MODULES); do \
-		PYTHONPATH=$$module/src $(UV_RUN) pytest -v --cov-report=term --cov=$$module/src $$module/test; \
+		PYTHONPATH=$$module/src $(UV_RUN) pytest -v $$module/test; \
 	done
 
 ci:

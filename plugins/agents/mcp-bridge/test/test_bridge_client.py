@@ -30,7 +30,8 @@ async def test_list_tools_returns_descriptors(monkeypatch: pytest.MonkeyPatch) -
             self.name = "random"
             self.description = "Generate random"
 
-            def _model_dump(_mode: str = "json") -> dict[str, Any]:
+            def _model_dump(*, mode: str = "json") -> dict[str, Any]:
+                _ = mode
                 return {"type": "object"}
 
             self.inputSchema = SimpleNamespace(model_dump=_model_dump)

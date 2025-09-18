@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any
@@ -15,6 +16,8 @@ from hopeit.agents.model_client.models import (
     ToolCall,
     Usage,
 )
+
+run_agent_module = sys.modules[run_agent.__module__]
 
 
 @pytest.mark.asyncio
@@ -33,10 +36,7 @@ async def test_run_agent_without_tools(monkeypatch: pytest.MonkeyPatch) -> None:
             finish_reason="stop",
         )
 
-    monkeypatch.setattr(
-        "agent_example.events.run_agent.model_generate.generate",
-        fake_generate,
-    )
+    monkeypatch.setattr(run_agent_module.model_generate, "generate", fake_generate)
 
     context = SimpleNamespace(settings={"agent": {"system_prompt": "You help."}}, env={})
 
@@ -78,14 +78,8 @@ async def test_run_agent_with_tool(monkeypatch: pytest.MonkeyPatch) -> None:
             raw_result={"content": [{"value": 42}]},
         )
 
-    monkeypatch.setattr(
-        "agent_example.events.run_agent.model_generate.generate",
-        fake_generate,
-    )
-    monkeypatch.setattr(
-        "agent_example.events.run_agent.bridge_invoke_tool.invoke_tool",
-        fake_invoke,
-    )
+    monkeypatch.setattr(run_agent_module.model_generate, "generate", fake_generate)
+    monkeypatch.setattr(run_agent_module.bridge_invoke_tool, "invoke_tool", fake_invoke)
 
     context = SimpleNamespace(
         settings={"agent": {"system_prompt": "You help."}},
