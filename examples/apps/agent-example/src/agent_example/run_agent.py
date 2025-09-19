@@ -9,8 +9,18 @@ from hopeit.app.logger import app_extra_logger
 from hopeit.dataobjects import dataclass, dataobject, field
 
 from agent_example.settings import AgentSettings
-from hopeit_agents.mcp_bridge.api import invoke_tool as bridge_invoke_tool
-from hopeit_agents.mcp_bridge.models import ToolExecutionResult, ToolInvocation
+from hopeit_agents.mcp_bridge.api import (
+    invoke_tool as bridge_invoke_tool,
+)
+from hopeit_agents.mcp_bridge.api import (
+    list_tools as bridge_list_tools,
+)
+from hopeit_agents.mcp_bridge.client import MCPBridgeError
+from hopeit_agents.mcp_bridge.models import (
+    ToolDescriptor,
+    ToolExecutionResult,
+    ToolInvocation,
+)
 from hopeit_agents.model_client.api import generate as model_generate
 from hopeit_agents.model_client.models import (
     CompletionRequest,
@@ -59,7 +69,8 @@ __api__ = event_api(
 async def run_agent(payload: AgentRequest, context: EventContext) -> AgentResponse:
     """Execute the agent loop: model completion, optional tool calls."""
     agent_settings = context.settings(key="agent", datatype=AgentSettings)
-    conversation = _build_conversation(payload, agent_settings)
+    tool_prompt = await _resolve_tool_prompt(agent_settings, context, payload.agent_id)
+    conversation = _build_conversation(payload, agent_settings, tool_prompt)
 
     model_request = CompletionRequest(conversation=conversation)
     completion = await model_generate.generate(model_request, context)
@@ -98,12 +109,93 @@ async def run_agent(payload: AgentRequest, context: EventContext) -> AgentRespon
     return response
 
 
-def _build_conversation(payload: AgentRequest, settings: AgentSettings) -> Conversation:
+def _build_conversation(
+    payload: AgentRequest,
+    settings: AgentSettings,
+    tool_prompt: str | None,
+) -> Conversation:
     base_messages = list(payload.conversation.messages) if payload.conversation else []
-    if not base_messages and settings.system_prompt:
-        base_messages.append(Message(role=Role.SYSTEM, content=settings.system_prompt))
+    if not base_messages:
+        system_parts: list[str] = []
+        if settings.system_prompt:
+            system_parts.append(settings.system_prompt.strip())
+        if tool_prompt:
+            system_parts.append(tool_prompt)
+        if system_parts:
+            base_messages.append(
+                Message(
+                    role=Role.SYSTEM, content="\n\n".join(part for part in system_parts if part)
+                )
+            )
     base_messages.append(Message(role=Role.USER, content=payload.user_message))
     return Conversation(messages=base_messages)
+
+
+async def _resolve_tool_prompt(
+    settings: AgentSettings,
+    context: EventContext,
+    agent_id: str,
+) -> str | None:
+    if not settings.enable_tools or not settings.tool_prompt_template:
+        return None
+
+    try:
+        tools = await bridge_list_tools.list_tools(None, context)
+    except MCPBridgeError as exc:
+        logger.warning(
+            context,
+            "agent_tool_prompt_list_failed",
+            extra=extra(agent_id=agent_id, error=str(exc), details=exc.details),
+        )
+        return None
+    except Exception as exc:  # pragma: no cover - defensive guardrail
+        logger.warning(
+            context,
+            "agent_tool_prompt_unexpected_error",
+            extra=extra(agent_id=agent_id, error=repr(exc)),
+        )
+        return None
+
+    prompt = _build_tool_prompt(tools, settings)
+    return prompt
+
+
+def _build_tool_prompt(tools: list[ToolDescriptor], settings: AgentSettings) -> str | None:
+    if not tools:
+        return None
+
+    template = settings.tool_prompt_template
+    if not template:
+        return None
+
+    tool_descriptions = _format_tool_descriptions(
+        tools,
+        include_schemas=settings.include_tool_schemas_in_prompt,
+    )
+    if not tool_descriptions:
+        return None
+
+    try:
+        prompt = template.format(tool_descriptions=tool_descriptions)
+    except (IndexError, KeyError, ValueError):
+        prompt = f"{template}\n{tool_descriptions}"
+    return prompt.strip()
+
+
+def _format_tool_descriptions(
+    tools: list[ToolDescriptor],
+    *,
+    include_schemas: bool,
+) -> str:
+    lines: list[str] = []
+    for tool in tools:
+        description = (tool.description or "No description provided.").strip()
+        lines.append(f"- {tool.name}: {description}")
+        if include_schemas and tool.input_schema:
+            schema = json.dumps(tool.input_schema, indent=2, sort_keys=True)
+            lines.append("  JSON schema:")
+            lines.extend(f"    {schema_line}" for schema_line in schema.splitlines())
+    return "\n".join(lines).strip()
 
 
 async def _execute_tool(

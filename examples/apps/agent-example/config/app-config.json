@@ -35,7 +35,9 @@
     },
     "agent": {
       "system_prompt": "You are a helpful agent that can call tools via MCP.",
-      "enable_tools": true
+      "enable_tools": true,
+      "tool_prompt_template": "You can call the following MCP tools when helpful. Return tool calls with JSON arguments that follow the schema.\n{tool_descriptions}",
+      "include_tool_schemas_in_prompt": true
     }
   },
   "events": {
