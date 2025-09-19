@@ -1,6 +1,7 @@
 """hopeit_agents model client plugin."""
 
 from .client import AsyncModelClient, ModelClientError
+from .conversation import build_conversation
 from .models import (
     CompletionConfig,
     CompletionRequest,
@@ -16,6 +17,7 @@ from .settings import ModelClientSettings
 
 __all__ = [
     "AsyncModelClient",
+    "build_conversation",
     "CompletionConfig",
     "CompletionRequest",
     "CompletionResponse",
