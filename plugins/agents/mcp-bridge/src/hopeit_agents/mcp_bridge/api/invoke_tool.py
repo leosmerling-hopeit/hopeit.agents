@@ -1,20 +1,17 @@
 """Invoke an MCP tool and return its result."""
 
-from collections.abc import Mapping
-from typing import Any, cast
-
 from hopeit.app.api import event_api
 from hopeit.app.context import EventContext
 from hopeit.app.logger import app_extra_logger
 
-from hopeit.agents.mcp_bridge.client import MCPBridgeClient, MCPBridgeError
-from hopeit.agents.mcp_bridge.models import ToolExecutionResult, ToolInvocation
-from hopeit.agents.mcp_bridge.settings import build_environment, load_settings
+from hopeit_agents.mcp_bridge.client import MCPBridgeClient, MCPBridgeError
+from hopeit_agents.mcp_bridge.models import BridgeConfig, ToolExecutionResult, ToolInvocation
+from hopeit_agents.mcp_bridge.settings import build_environment
 
 __steps__ = ["invoke_tool"]
 
 __api__ = event_api(
-    summary="hopeit.agents MCP bridge: invoke tool",
+    summary="hopeit_agents MCP bridge: invoke tool",
     payload=(ToolInvocation, "Tool invocation payload"),
     responses={
         200: (ToolExecutionResult, "Tool execution result"),
@@ -28,8 +25,7 @@ logger, extra = app_extra_logger()
 
 async def invoke_tool(payload: ToolInvocation, context: EventContext) -> ToolExecutionResult:
     """Invoke the requested tool using MCP."""
-    settings_map = cast(Mapping[str, Any], context.settings)
-    config = load_settings(settings_map)
+    config = context.settings(key="mcp_bridge", datatype=BridgeConfig)
     env = build_environment(config, context.env)
     client = MCPBridgeClient(config=config, env=env)
 

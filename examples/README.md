@@ -1,11 +1,11 @@
-# hopeit.agents Examples
+# hopeit_agents Examples
 
 This repository ships a minimal agent application and a matching MCP-compatible tool to illustrate how to wire `hopeit.engine` plugins together. The steps below assume you have already read the [hopeit.engine tutorials](https://hopeitengine.readthedocs.io/en/latest/) and cover only the additional configuration required for the agents/plugins scenario.
 
 ## Prerequisites
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) installed (`pipx install uv` or see the official docs)
-- Local checkout of `hopeit.agents`
+- Local checkout of `hopeit_agents`
 
 From the repository root:
 
@@ -46,18 +46,16 @@ export AGENT_MODEL_API_BASE="http://localhost:11434/v1"
 The bridge plugin connects to an MCP server via stdio.
 
 - The command/args are set in `settings.mcp_bridge` inside `app-config.json`.
-- Update `command` / `args` to launch your server. Example using the official Anthropic MCP Python SDK:
+- To use the bundled sample server that registers `generate-random`, point the config to:
   ```json
   "command": "uvx",
-  "args": ["python", "-m", "my_mcp_server"]
+  "args": ["python", "-m", "examples.servers.my_mcp_server"]
   ```
-- If the server requires environment variables (API tokens, PYTHONPATH), add them to `settings.mcp_bridge.env`.
-
-To run a sample server (replace with your implementation):
-```bash
-uv run mcp dev start --name random-tool --command "python" -- "path/to/server.py"
-```
-Ensure the command matches what is in the agent configuration.
+- Launch that server manually (if you want to inspect it) with:
+  ```bash
+  uvx python -m examples.servers.my_mcp_server
+  ```
+- If you need a different MCP server, adjust the command/args accordingly and add environment variables (API tokens, `PYTHONPATH`, etc.) in `settings.mcp_bridge.env`.
 
 ## Step 3 – Run the Example Tool (optional standalone test)
 Outside of the full agent flow you can call the tool event directly:
@@ -76,7 +74,7 @@ Adjust the settings discussed above, then run the app using `hopeit.engine`’s 
 
 ```bash
 uv run hopeit_server run \
-  --config-files=examples/apps/agent-example/config/app-config.json \
+  --config-files=server-noauth.json,app-config.json \
   --port=8020 \
   --api-file=examples/apps/agent-example/api/openapi.json
 ```

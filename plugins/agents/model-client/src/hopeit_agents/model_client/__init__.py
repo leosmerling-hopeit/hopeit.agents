@@ -1,4 +1,4 @@
-"""hopeit.agents model client plugin."""
+"""hopeit_agents model client plugin."""
 
 from .client import AsyncModelClient, ModelClientError
 from .models import (
@@ -12,7 +12,7 @@ from .models import (
     ToolResult,
     Usage,
 )
-from .settings import ModelClientSettings, load_settings
+from .settings import ModelClientSettings
 
 __all__ = [
     "AsyncModelClient",
@@ -27,5 +27,4 @@ __all__ = [
     "ToolCall",
     "ToolResult",
     "Usage",
-    "load_settings",
 ]

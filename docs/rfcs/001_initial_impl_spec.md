@@ -1,4 +1,4 @@
-# Minimal Implementation Plan for hopeit.agents
+# Minimal Implementation Plan for hopeit_agents
 
 ## Context Recap
 - Reviewed `hopeit.engine` docs, plugin layout, and root `pyproject.toml` to mirror packaging patterns (`pyproject` + `uv` configuration, tests under `test/`).
@@ -21,7 +21,7 @@
 - Generate `uv` lock/setup files if applicable and document usage commands in README (e.g., `uv run pytest`).
 - Establish common `conftest.py` and utilities for tests; ensure type-check friendly fixtures.
 
-### 2. Plugin: `hopeit.agents.model_client`
+### 2. Plugin: `hopeit_agents.model_client`
 - **Layout**: `plugins/agents/model-client/{pyproject.toml, README.md, src/hopeit/agents/model_client/...}` plus `test/` mirroring hopeit.engine plugin packaging.
 - **Data models** (`models.py`, using `@dataobject` with explicit typing):
   - `Role` enum (`system`, `user`, `assistant`, `tool`).
@@ -41,7 +41,7 @@
   - Unit tests using typed mocks for `aiohttp.ClientSession` verifying payloads/responses and error paths.
   - Event test with hopeit test utilities, ensuring type-safe fixtures.
 
-### 3. Plugin: `hopeit.agents.mcp_bridge`
+### 3. Plugin: `hopeit_agents.mcp_bridge`
 - **Layout**: `plugins/agents/mcp-bridge/{pyproject.toml, README.md, src/hopeit/agents/mcp_bridge/...}` plus `test/`.
 - **Dependencies**: rely exclusively on Anthropic's official `mcp` Python library; specify extras in `pyproject.toml` / `uv` config.
 - **Data models** (`models.py`, typed):

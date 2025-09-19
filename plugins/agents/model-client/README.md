@@ -1,4 +1,4 @@
-# hopeit.agents model client plugin
+# hopeit_agents model client plugin
 
 This plugin exposes data objects and an event to interact with OpenAI-compatible chat completion APIs from hopeit.engine apps.
 
@@ -27,7 +27,7 @@ This plugin exposes data objects and an event to interact with OpenAI-compatible
 ## Event usage
 ```python
 from hopeit.app.client import app_call
-from hopeit.agents.model_client.models import CompletionRequest
+from hopeit_agents.model_client.models import CompletionRequest
 
 response = await app_call(
     "model-client-conn",

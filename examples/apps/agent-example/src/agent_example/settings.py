@@ -13,7 +13,7 @@ SETTINGS_KEY = "agent"
 class AgentSettings:
     """Configurable defaults for the example agent."""
 
-    system_prompt: str = "You are a helpful agent built with hopeit.agents."
+    system_prompt: str = "You are a helpful agent built with hopeit_agents."
     enable_tools: bool = True
 
 

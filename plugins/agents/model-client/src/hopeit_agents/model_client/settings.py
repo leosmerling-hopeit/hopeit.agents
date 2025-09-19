@@ -37,21 +37,6 @@ class ModelClientSettings:
         return None
 
 
-def load_settings(context_settings: Mapping[str, Any]) -> ModelClientSettings:
-    """Load ModelClientSettings from context settings mapping."""
-    try:
-        raw_settings = context_settings[SETTINGS_KEY]
-    except KeyError as exc:  # pragma: no cover - validated by tests
-        raise KeyError("Missing 'model_client' entry in context settings.") from exc
-    if isinstance(raw_settings, ModelClientSettings):
-        return raw_settings
-    if not isinstance(raw_settings, Mapping):
-        raise TypeError(
-            f"model_client settings must be a mapping, received: {type(raw_settings).__name__}",
-        )
-    return ModelClientSettings(**raw_settings)
-
-
 def merge_config(
     settings: ModelClientSettings,
     override: CompletionConfig | None,

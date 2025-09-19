@@ -1,14 +1,13 @@
-"""hopeit.agents MCP bridge plugin."""
+"""hopeit_agents MCP bridge plugin."""
 
-from .client import MCPBridgeClient, MCPBridgeError
-from .models import (
+from hopeit_agents.mcp_bridge.client import MCPBridgeClient, MCPBridgeError
+from hopeit_agents.mcp_bridge.models import (
     BridgeConfig,
     ToolDescriptor,
     ToolExecutionResult,
     ToolExecutionStatus,
     ToolInvocation,
 )
-from .settings import load_settings
 
 __all__ = [
     "BridgeConfig",
@@ -18,5 +17,4 @@ __all__ = [
     "ToolExecutionResult",
     "ToolExecutionStatus",
     "ToolInvocation",
-    "load_settings",
 ]

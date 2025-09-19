@@ -1,0 +1,35 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Agent Example API",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "hopeit.server.web",
+      "args": [
+        "--config-files=examples/apps/agent-example/config/server-noauth.json,plugins/agents/mcp-bridge/config/plugin-config.json,plugins/agents/model-client/config/plugin-config.json,examples/plugins/example-tool/config/plugin-config.json,examples/apps/agent-example/config/app-config.json",
+        "--port=8020",
+        "--api-auto=AgentExample;AgentExample;1.0"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "AGENT_MODEL_API_BASE": "http://localhost:11434/v1",
+        "AGENT_MODEL_NAME": "gpt-oss:20b"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Example MCP Server",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "examples.servers.my_mcp_server",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "MCP_RANDOM_SEED": "1234"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}

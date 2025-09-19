@@ -5,9 +5,9 @@ from typing import Any
 
 import pytest
 
-from agent_example.events.run_agent import AgentRequest, run_agent
-from hopeit.agents.mcp_bridge.models import ToolExecutionResult, ToolExecutionStatus
-from hopeit.agents.model_client.models import (
+from agent_example.run_agent import AgentRequest, run_agent
+from hopeit_agents.mcp_bridge.models import ToolExecutionResult, ToolExecutionStatus
+from hopeit_agents.model_client.models import (
     CompletionResponse,
     Message,
     Role,

@@ -9,7 +9,7 @@ from typing import Any, cast
 
 from mcp import ClientSession, McpError, StdioServerParameters, stdio_client, types
 
-from .models import (
+from hopeit_agents.mcp_bridge.models import (
     BridgeConfig,
     ToolDescriptor,
     ToolExecutionResult,

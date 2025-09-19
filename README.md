@@ -1,4 +1,4 @@
-# hopeit.agents
+# hopeit_agents
 
 hopeit.engine async GenAI multi-agent framework
 

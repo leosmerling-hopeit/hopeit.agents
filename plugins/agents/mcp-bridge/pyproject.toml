@@ -1,5 +1,5 @@
 [project]
-name = "hopeit.agents-mcp-bridge"
+name = "hopeit-agents.mcp-bridge"
 version = "0.1.0"
 
 description = "Hopeit plugin bridging to Model Context Protocol tools"
@@ -12,7 +12,7 @@ dependencies = [
 
 license = { text = "Apache 2" }
 authors = [
-    { name = "hopeit.agents contributors", email = "opensource@hopeit.com.ar" }
+    { name = "hopeit-agents contributors", email = "opensource@hopeit.com.ar" }
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/hopeit-git/hopeit.agents"
+"Homepage" = "https://github.com/hopeit-git/hopeit_agents"
 
 [tool.setuptools]
 include-package-data = true

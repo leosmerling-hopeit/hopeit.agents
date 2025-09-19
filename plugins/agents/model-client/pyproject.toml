@@ -1,5 +1,5 @@
 [project]
-name = "hopeit.agents-model-client"
+name = "hopeit-agents.model-client"
 version = "0.1.0"
 
 description = "Hopeit plugin providing OpenAI-compatible model client for agents"
@@ -8,19 +8,16 @@ dynamic = ["readme"]
 dependencies = [
     "hopeit.engine>=0.27.0",
     "aiohttp>=3.10.0",
-    "pydantic>=2.8.0",
 ]
 
 license = { text = "Apache 2" }
 authors = [
-    { name = "hopeit.agents contributors", email = "opensource@hopeit.com.ar" }
+    { name = "hopeit-agents contributors", email = "opensource@hopeit.com.ar" }
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Intended Audience :: Developers",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Development Status :: 3 - Alpha",
@@ -31,7 +28,7 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/hopeit-git/hopeit.agents"
+"Homepage" = "https://github.com/hopeit-git/hopeit_agents"
 
 [tool.setuptools]
 include-package-data = true

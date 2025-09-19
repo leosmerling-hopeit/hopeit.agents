@@ -4,9 +4,9 @@ from typing import Any, Self, cast
 
 import pytest
 
-from hopeit.agents.model_client.client import AsyncModelClient, ModelClientError
-from hopeit.agents.model_client.events import generate as generate_event
-from hopeit.agents.model_client.models import (
+from hopeit_agents.model_client.api import generate as generate_event
+from hopeit_agents.model_client.client import AsyncModelClient, ModelClientError
+from hopeit_agents.model_client.models import (
     CompletionConfig,
     CompletionRequest,
     CompletionResponse,
@@ -16,7 +16,7 @@ from hopeit.agents.model_client.models import (
     ToolCall,
     Usage,
 )
-from hopeit.agents.model_client.settings import ModelClientSettings, merge_config
+from hopeit_agents.model_client.settings import ModelClientSettings, merge_config
 
 
 class _FakeResponse:
@@ -88,7 +88,7 @@ async def test_async_model_client_complete_success(monkeypatch: pytest.MonkeyPat
         return fake_session
 
     monkeypatch.setattr(
-        "hopeit.agents.model_client.client.aiohttp.ClientSession",
+        "hopeit_agents.model_client.client.aiohttp.ClientSession",
         fake_client_session,
     )
 
@@ -120,7 +120,7 @@ async def test_async_model_client_error_on_http_failure(monkeypatch: pytest.Monk
         return fake_session
 
     monkeypatch.setattr(
-        "hopeit.agents.model_client.client.aiohttp.ClientSession",
+        "hopeit_agents.model_client.client.aiohttp.ClientSession",
         fake_client_session,
     )
 
@@ -165,7 +165,7 @@ async def test_generate_event_invokes_client(monkeypatch: pytest.MonkeyPatch) ->
         complete = fake_complete
 
     monkeypatch.setattr(
-        "hopeit.agents.model_client.events.generate.AsyncModelClient",
+        "hopeit_agents.model_client.events.generate.AsyncModelClient",
         _FakeClient,
     )
 

@@ -5,14 +5,14 @@ from typing import Any
 
 import pytest
 
-from hopeit.agents.mcp_bridge.client import MCPBridgeClient, MCPBridgeError
-from hopeit.agents.mcp_bridge.models import (
+from hopeit_agents.mcp_bridge.client import MCPBridgeClient, MCPBridgeError
+from hopeit_agents.mcp_bridge.models import (
     BridgeConfig,
     ToolDescriptor,
     ToolExecutionStatus,
     ToolInvocation,
 )
-from hopeit.agents.mcp_bridge.settings import build_environment
+from hopeit_agents.mcp_bridge.settings import build_environment
 
 
 @pytest.mark.asyncio
@@ -44,7 +44,7 @@ async def test_list_tools_returns_descriptors(monkeypatch: pytest.MonkeyPatch) -
         yield _FakeSession()
 
     monkeypatch.setattr(
-        "hopeit.agents.mcp_bridge.client.asyncio.wait_for",
+        "hopeit_agents.mcp_bridge.client.asyncio.wait_for",
         fake_wait_for,
     )
     monkeypatch.setattr(MCPBridgeClient, "_session", fake_session)
@@ -93,7 +93,7 @@ async def test_call_tool_returns_success(monkeypatch: pytest.MonkeyPatch) -> Non
         yield _FakeSession()
 
     monkeypatch.setattr(
-        "hopeit.agents.mcp_bridge.client.asyncio.wait_for",
+        "hopeit_agents.mcp_bridge.client.asyncio.wait_for",
         fake_wait_for,
     )
     monkeypatch.setattr(MCPBridgeClient, "_session", fake_session)

@@ -12,9 +12,9 @@ MODULES = \
 	examples/apps/agent-example
 
 MYPY_TARGETS = \
-	plugins/agents/model-client:hopeit.agents.model_client \
-	plugins/agents/mcp-bridge:hopeit.agents.mcp_bridge \
-	examples/plugins/example-tool:hopeit.agents.example_tool \
+	plugins/agents/model-client:hopeit_agents.model_client \
+	plugins/agents/mcp-bridge:hopeit_agents.mcp_bridge \
+	examples/plugins/example-tool:hopeit_agents.example_tool \
 	examples/apps/agent-example:agent_example
 
 env:

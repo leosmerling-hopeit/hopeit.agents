@@ -2,18 +2,18 @@
 name = "agent-example"
 version = "0.1.0"
 
-description = "hopeit.agents example app"
+description = "hopeit_agents example app"
 dynamic = ["readme"]
 
 dependencies = [
-    "hopeit.engine>=0.27.0",
-    "hopeit.agents-model-client",
-    "hopeit.agents-mcp-bridge",
+    "hopeit.engine[web]>=0.27.0",
+    "hopeit-agents.model-client",
+    "hopeit-agents.mcp-bridge",
 ]
 
 license = { text = "Apache 2" }
 authors = [
-    { name = "hopeit.agents contributors", email = "opensource@hopeit.com.ar" }
+    { name = "hopeit-agents contributors", email = "opensource@hopeit.com.ar" }
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",

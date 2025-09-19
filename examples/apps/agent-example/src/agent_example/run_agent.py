@@ -1,19 +1,18 @@
 """Run an agent conversation combining model completions and MCP tool calls."""
 
 import json
-from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from hopeit.app.api import event_api
 from hopeit.app.context import EventContext
 from hopeit.app.logger import app_extra_logger
 from hopeit.dataobjects import dataclass, dataobject, field
 
-from agent_example.settings import AgentSettings, load_agent_settings
-from hopeit.agents.mcp_bridge.events import invoke_tool as bridge_invoke_tool
-from hopeit.agents.mcp_bridge.models import ToolExecutionResult, ToolInvocation
-from hopeit.agents.model_client.events import generate as model_generate
-from hopeit.agents.model_client.models import (
+from agent_example.settings import AgentSettings
+from hopeit_agents.mcp_bridge.api import invoke_tool as bridge_invoke_tool
+from hopeit_agents.mcp_bridge.models import ToolExecutionResult, ToolInvocation
+from hopeit_agents.model_client.api import generate as model_generate
+from hopeit_agents.model_client.models import (
     CompletionRequest,
     Conversation,
     Message,
@@ -59,8 +58,7 @@ __api__ = event_api(
 
 async def run_agent(payload: AgentRequest, context: EventContext) -> AgentResponse:
     """Execute the agent loop: model completion, optional tool calls."""
-    settings_map = cast(Mapping[str, Any], context.settings)
-    agent_settings = load_agent_settings(settings_map)
+    agent_settings = context.settings(key="agent", datatype=AgentSettings)
     conversation = _build_conversation(payload, agent_settings)
 
     model_request = CompletionRequest(conversation=conversation)
