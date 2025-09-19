@@ -56,6 +56,25 @@ class ToolExecutionResult:
 
 @dataobject
 @dataclass
+class ToolCallRequestLog:
+    """Captured request details for a tool call."""
+
+    tool_call_id: str
+    tool_name: str
+    arguments: dict[str, Any] = field(default_factory=dict)
+
+
+@dataobject
+@dataclass
+class ToolCallRecord:
+    """Aggregated tool call request and response for logging/telemetry."""
+
+    request: ToolCallRequestLog
+    response: ToolExecutionResult
+
+
+@dataobject
+@dataclass
 class BridgeConfig:
     """Configuration required to communicate with an MCP server."""
 

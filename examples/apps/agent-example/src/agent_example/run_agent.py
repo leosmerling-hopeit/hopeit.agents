@@ -10,7 +10,10 @@ from hopeit.dataobjects import dataclass, dataobject, field
 
 from agent_example.settings import AgentSettings
 from hopeit_agents.mcp_bridge.agent_tooling import (
-    call_tool as bridge_call_tool,
+    ToolCallRecord,
+)
+from hopeit_agents.mcp_bridge.agent_tooling import (
+    execute_tool_calls as bridge_execute_tool_calls,
 )
 from hopeit_agents.mcp_bridge.agent_tooling import (
     resolve_tool_prompt as bridge_resolve_tool_prompt,
@@ -42,7 +45,7 @@ class AgentResponse:
     agent_id: str
     conversation: Conversation
     assistant_message: Message
-    tool_results: list[ToolExecutionResult] = field(default_factory=list)
+    tool_calls: list[ToolCallRecord] = field(default_factory=list)
 
 
 __steps__ = ["run_agent"]
@@ -77,22 +80,21 @@ async def run_agent(payload: AgentRequest, context: EventContext) -> AgentRespon
     completion = await model_generate.generate(model_request, context)
     conversation = completion.conversation
 
-    tool_results: list[ToolExecutionResult] = []
+    tool_call_records: list[ToolCallRecord] = []
 
     if agent_settings.enable_tools and completion.tool_calls:
-        for tool_call in completion.tool_calls:
-            result = await bridge_call_tool(
-                context,
-                tool_name=tool_call.name,
-                arguments=tool_call.arguments,
-                session_id=payload.agent_id,
-            )
-            tool_results.append(result)
+        tool_call_records = await bridge_execute_tool_calls(
+            context,
+            tool_calls=completion.tool_calls,
+            session_id=payload.agent_id,
+        )
+
+        for record in tool_call_records:
             conversation = conversation.with_message(
                 Message(
                     role=Role.TOOL,
-                    content=_format_tool_result(result),
-                    tool_call_id=tool_call.call_id,
+                    content=_format_tool_result(record.response),
+                    tool_call_id=record.request.tool_call_id,
                 ),
             )
 
@@ -100,7 +102,7 @@ async def run_agent(payload: AgentRequest, context: EventContext) -> AgentRespon
         agent_id=payload.agent_id,
         conversation=conversation,
         assistant_message=completion.message,
-        tool_results=tool_results,
+        tool_calls=tool_call_records,
     )
 
     logger.info(
@@ -108,7 +110,15 @@ async def run_agent(payload: AgentRequest, context: EventContext) -> AgentRespon
         "agent_run_completed",
         extra=extra(
             agent_id=payload.agent_id,
-            tool_count=len(tool_results),
+            tool_call_count=len(tool_call_records),
+            tool_calls=[
+                {
+                    "tool_call_id": record.request.tool_call_id,
+                    "tool_name": record.request.tool_name,
+                    "status": record.response.status.value,
+                }
+                for record in tool_call_records
+            ],
             finish_reason=completion.finish_reason,
         ),
     )
