@@ -43,19 +43,21 @@ export AGENT_MODEL_API_BASE="http://localhost:11434/v1"
 ```
 
 ## Step 2 – Provide an MCP Server
-The bridge plugin connects to an MCP server via stdio.
+The bridge plugin now talks to MCP servers using the official Streamable HTTP
+transport, so the server can stay alive across requests without custom socket
+adapters.
 
-- The command/args are set in `settings.mcp_bridge` inside `app-config.json`.
-- To use the bundled sample server that registers `generate-random`, point the config to:
-  ```json
-  "command": "uvx",
-  "args": ["python", "-m", "examples.servers.my_mcp_server"]
-  ```
-- Launch that server manually (if you want to inspect it) with:
+- Configure the connection in `settings.mcp_bridge` (set the `url` and, if
+  needed, override `host`/`port` for convenience).
+- Start the bundled sample server in a separate terminal:
   ```bash
-  uvx python -m examples.servers.my_mcp_server
+  uvx python -m examples.servers.my_mcp_server --transport http --host 127.0.0.1 --port 8765
   ```
-- If you need a different MCP server, adjust the command/args accordingly and add environment variables (API tokens, `PYTHONPATH`, etc.) in `settings.mcp_bridge.env`.
+- If you prefer the legacy stdio behaviour, run the server with
+  `--transport stdio` and switch the bridge transport back to `stdio` (restore
+  the `command`/`args` in the settings).
+- Customize the environment variables (API tokens, `PYTHONPATH`, etc.) using
+  `settings.mcp_bridge.env`.
 
 ## Step 3 – Run the Example Tool (optional standalone test)
 Outside of the full agent flow you can call the tool event directly:

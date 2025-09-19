@@ -22,8 +22,10 @@
       }
     },
     "mcp_bridge": {
-      "command": "python",
-      "args": ["-m", "examples.servers.my_mcp_server"],
+      "transport": "http",
+      "url": "http://127.0.0.1:8765/mcp",
+      "host": "127.0.0.1",
+      "port": 8765,
       "env": {
         "MCP_RANDOM_SEED": "1234"
       },

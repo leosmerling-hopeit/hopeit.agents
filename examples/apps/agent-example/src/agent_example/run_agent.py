@@ -87,6 +87,7 @@ async def run_agent(payload: AgentRequest, context: EventContext) -> AgentRespon
     )
 
     logger.info(
+        context,
         "agent_run_completed",
         extra=extra(
             agent_id=payload.agent_id,

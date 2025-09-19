@@ -10,6 +10,7 @@ class Transport(str, Enum):
     """Supported MCP transport mechanisms."""
 
     STDIO = "stdio"
+    HTTP = "http"
 
 
 class ToolExecutionStatus(str, Enum):
@@ -58,9 +59,12 @@ class ToolExecutionResult:
 class BridgeConfig:
     """Configuration required to communicate with an MCP server."""
 
-    command: str
+    command: str | None = None
     args: list[str] = field(default_factory=list)
     transport: Transport = Transport.STDIO
+    url: str | None = None
+    host: str | None = None
+    port: int | None = None
     env: dict[str, str] = field(default_factory=dict)
     cwd: str | None = None
     tool_cache_seconds: float = 30.0
@@ -71,4 +75,9 @@ class BridgeConfig:
         """Return the transport as enum."""
         if isinstance(self.transport, Transport):
             return self.transport
-        return Transport(str(self.transport))
+
+        value = str(self.transport)
+        if value == "tcp":  # Backwards compatibility for previous configs
+            value = Transport.HTTP.value
+
+        return Transport(value)

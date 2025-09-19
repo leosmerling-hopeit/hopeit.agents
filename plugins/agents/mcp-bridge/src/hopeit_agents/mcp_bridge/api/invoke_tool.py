@@ -33,12 +33,14 @@ async def invoke_tool(payload: ToolInvocation, context: EventContext) -> ToolExe
         result = await client.call_tool(payload)
     except MCPBridgeError as exc:
         logger.error(
+            context,
             "mcp_invoke_tool_error",
             extra=extra(tool_name=payload.tool_name, details=exc.details),
         )
         raise
 
     logger.info(
+        context,
         "mcp_invoke_tool_success",
         extra=extra(tool_name=payload.tool_name, status=result.status.value),
     )

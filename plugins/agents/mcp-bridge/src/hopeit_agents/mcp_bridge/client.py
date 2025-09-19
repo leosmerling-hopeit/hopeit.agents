@@ -8,6 +8,7 @@ from time import monotonic
 from typing import Any, cast
 
 from mcp import ClientSession, McpError, StdioServerParameters, stdio_client, types
+from mcp.client.streamable_http import streamablehttp_client
 
 from hopeit_agents.mcp_bridge.models import (
     BridgeConfig,
@@ -91,11 +92,34 @@ class MCPBridgeClient:
     @asynccontextmanager
     async def _session(self) -> AsyncIterator[ClientSession]:
         transport = self._config.transport_enum()
+        if transport is Transport.HTTP:
+            url = self._config.url
+            if not url:
+                host = self._config.host
+                port = self._config.port
+                if not host or port is None:
+                    raise MCPBridgeError("HTTP transport requires either a URL or host and port")
+                url = f"http://{host}:{int(port)}/mcp"
+
+            async with streamablehttp_client(
+                url,
+                timeout=self._config.list_timeout_seconds,
+                sse_read_timeout=self._config.call_timeout_seconds,
+            ) as (read_stream, write_stream, _):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
+                    yield session
+            return
+
         if transport is not Transport.STDIO:
             raise MCPBridgeError(f"Transport '{transport.value}' not supported yet")
 
+        command = self._config.command
+        if not command:
+            raise MCPBridgeError("STDIO transport requires a command to launch the server")
+
         params = StdioServerParameters(
-            command=self._config.command,
+            command=command,
             args=self._config.args,
             env=self._env or None,
             cwd=self._config.cwd,

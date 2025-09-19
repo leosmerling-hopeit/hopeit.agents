@@ -38,7 +38,9 @@ async def generate(payload: CompletionRequest, context: EventContext) -> Complet
     try:
         response = await client.complete(payload, config)
     except ModelClientError as exc:
-        logger.error(context, "model_client_error", extra=extra(status=exc.status, details=exc.details))
+        logger.error(
+            context, "model_client_error", extra=extra(status=exc.status, details=exc.details)
+        )
         raise
 
     logger.info(

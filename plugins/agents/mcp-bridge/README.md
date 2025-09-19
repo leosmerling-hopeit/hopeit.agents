@@ -4,7 +4,7 @@ This plugin connects hopeit.engine events with tools exposed through the officia
 
 ## Features
 - Typed data models mapping MCP tool descriptors and call results.
-- Async bridge client that launches MCP servers via stdio using the official SDK.
+- Async bridge client that connects to MCP servers via stdio (subprocess) or the official Streamable HTTP transport.
 - Ready-to-use events for listing tools and invoking a specific tool from agent apps.
 - Sample MCP server at `examples/servers/my_mcp_server` that registers the example `generate-random` tool.
 
@@ -13,9 +13,8 @@ This plugin connects hopeit.engine events with tools exposed through the officia
 {
   "settings": {
     "mcp_bridge": {
-      "transport": "stdio",
-      "command": "uvx",
-      "args": ["python", "-m", "examples.servers.my_mcp_server"],
+      "transport": "http",
+      "url": "http://127.0.0.1:8765/mcp",
       "env": {
         "PYTHONPATH": "/path/to/project"
       },
@@ -39,4 +38,4 @@ result = await app_call(
 )
 ```
 
-> **Note:** the current implementation supports stdio transports. Additional transports (e.g., WebSocket, Streamable HTTP) can be added by extending `BridgeConfig`.
+> **Note:** Streamable HTTP and stdio transports are built in. Additional transports (e.g., WebSocket) can be added by extending `BridgeConfig`.
