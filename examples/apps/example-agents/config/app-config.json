@@ -1,0 +1,60 @@
+{
+  "app": {
+    "name": "hopeit-agents-example-agents",
+    "version": "0.1"
+  },
+  "engine": {
+    "import_modules": ["hopeit_agents.example_agents"]
+  },
+  "settings": {
+    "model_client": {
+      "api_base": "${AGENT_MODEL_API_BASE}",
+      "api_key_env": "OPENAI_API_KEY",
+      "default_model": "${AGENT_MODEL_NAME}",
+      "deployment_name": "${AGENT_DEPLOYMENT_NAME}",
+      "api_version": "${AGENT_API_VERSION}",
+      "timeout_seconds": 120.0,
+      "extra_headers": {
+        "OpenAI-Beta": "assistants=v1"
+      }
+    },
+    "mcp_client_example_tools": {
+      "transport": "http",
+      "url": "http://127.0.0.1:8765/mcp",
+      "host": "127.0.0.1",
+      "port": 8765,
+      "tool_cache_seconds": 10.0,
+      "list_timeout_seconds": 5.0,
+      "call_timeout_seconds": 60.0
+    },
+    "main_agent_llm": {
+      "system_prompt": "You are a helpful agent that can call tools via MCP.",
+      "enable_tools": true,
+      "tool_prompt_template": "You can call ONLY the following tools when needed. Return tool calls with JSON that follow the schema.\n{tool_descriptions}",
+      "include_tool_schemas_in_prompt": true
+    },
+    "expert_agent_llm": {
+      "system_prompt": "You are a helpful agent that can generate random integer numbers and make operations using the availanle tools via MCP. After calling the needed tools return the answer as text. DON'T use or provide answers with numbers that are not coming from the tools",
+      "enable_tools": true,
+      "tool_prompt_template": "You can call ONLY the following tools when needed. Return tool calls with JSON that follow the schema.\n{tool_descriptions}",
+      "include_tool_schemas_in_prompt": true
+    },
+    "agents.expert_agent": {
+      "response_timeout": 600
+    }
+  },
+  "events": {
+    "agents.main_agent": {
+      "type": "POST"
+    },
+    "agents.expert_agent": {
+      "type": "POST",
+      "setting_keys": [
+        "expert_agent_llm",
+        "model_client",
+        "mcp_client_example_tools"
+      ],
+      "group": "sub-agents"
+    }
+  }
+}

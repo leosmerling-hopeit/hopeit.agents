@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any
 
 from hopeit.dataobjects import dataclass, dataobject, field
+from hopeit.dataobjects.payload import Payload
 
 
 class Transport(str, Enum):
@@ -95,6 +96,32 @@ class ToolDescriptor:
     for notes on _meta usage.
     """
 
+    def to_openai_dict(self) -> dict[str, Any]:
+        """
+        Convert this ToolDescriptor to an OpenAI tool definition dictionary.
+        """
+        tool_def: dict[str, Any] = {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description or "",
+                "parameters": self.input_schema,
+            },
+        }
+        if self.title:
+            tool_def["function"]["title"] = self.title
+        if self.annotations is not None:
+            tool_def["function"]["annotations"] = Payload.to_obj(self.annotations)
+        if self.meta is not None:
+            tool_def["function"]["_meta"] = self.meta
+
+        if self.output_schema is not None:
+            tool_def["function"]["response"] = {
+                "type": "json_schema",
+                "json_schema": self.output_schema,
+            }
+        return tool_def
+
 
 @dataobject
 @dataclass
@@ -152,19 +179,8 @@ class BridgeConfig:
     url: str | None = None
     host: str | None = None
     port: int | None = None
-    env: dict[str, str] = field(default_factory=dict)
     cwd: str | None = None
+    env: dict[str, str] = field(default_factory=dict)
     tool_cache_seconds: float = 30.0
     list_timeout_seconds: float = 10.0
     call_timeout_seconds: float = 60.0
-
-    def transport_enum(self) -> Transport:
-        """Return the transport as enum."""
-        if isinstance(self.transport, Transport):
-            return self.transport
-
-        value = str(self.transport)
-        if value == "tcp":  # Backwards compatibility for previous configs
-            value = Transport.HTTP.value
-
-        return Transport(value)

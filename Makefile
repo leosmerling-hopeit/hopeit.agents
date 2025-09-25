@@ -6,13 +6,17 @@ UV = UV_CACHE_DIR=.uv-cache uv
 UV_RUN = $(UV) run --no-sync
 
 MODULES = \
+	plugins/agents/model-client \
 	plugins/mcp/mcp-server \
 	plugins/mcp/mcp-client \
+	examples/apps/example-agents \
 	examples/plugins/example-tool
 
 MYPY_TARGETS = \
+	plugins/agents/model-client:hopeit_agents.model_client \
 	plugins/mcp/mcp-server:hopeit_agents.mcp_server \
 	plugins/mcp/mcp-client:hopeit_agents.mcp_client \
+	examples/apps/example-agents:hopeit_agents.example_agents \
 	examples/plugins/example-tool:hopeit_agents.example_tool
 
 env:
