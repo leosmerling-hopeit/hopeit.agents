@@ -1,150 +1,101 @@
-"""Sum two numbers tool event."""
-
-from typing import Any
+"""Expert agent event that orchestrates a tool-enabled conversation."""
 
 from hopeit.app.api import event_api
 from hopeit.app.context import EventContext
 from hopeit.app.logger import app_extra_logger
 from hopeit.dataobjects.payload import Payload
 
-from hopeit_agents.example_agents.models import AgentRequest, AgentResponse
-from hopeit_agents.example_agents.settings import AgentSettings
-from hopeit_agents.mcp_client.agent_tooling import (
-    ToolCallRecord,
+from hopeit_agents.agent_toolkit.app.steps.agent_loop import (
+    AgentLoopConfig,
+    AgentLoopPayload,
+    AgentLoopResult,
+    agent_with_tools_loop,
 )
-from hopeit_agents.mcp_client.agent_tooling import (
-    execute_tool_calls as bridge_execute_tool_calls,
+from hopeit_agents.agent_toolkit.mcp.agent_tools import resolve_tool_prompt
+from hopeit_agents.agent_toolkit.settings import AgentSettings
+from hopeit_agents.example_agents.models import (
+    ExpertAgentRequest,
+    ExpertAgentResponse,
+    ExpertAgentResults,
 )
-from hopeit_agents.mcp_client.agent_tooling import (
-    resolve_tool_prompt as bridge_resolve_tool_prompt,
-)
-from hopeit_agents.mcp_client.models import BridgeConfig, ToolExecutionResult, ToolInvocation
-from hopeit_agents.mcp_server.tools.api import event_tool_api
-from hopeit_agents.model_client.api import generate as model_generate
-from hopeit_agents.model_client.client import ModelClientError
+from hopeit_agents.mcp_client.models import MCPClientConfig
+from hopeit_agents.mcp_server.tools.api import _datatype_schema, event_tool_api
 from hopeit_agents.model_client.conversation import build_conversation
-from hopeit_agents.model_client.models import CompletionConfig, CompletionRequest, Message, Role
+from hopeit_agents.model_client.models import (
+    CompletionConfig,
+    Role,
+)
 
 logger, extra = app_extra_logger()
 
-__steps__ = ["run_agent"]
+__steps__ = ["init_conversation", agent_with_tools_loop.__name__, "result"]
 
 __api__ = event_api(
     summary="example-agents: expert agent",
-    payload=(AgentRequest, "Agent task description"),
-    responses={200: (AgentResponse, "Aggregated agent response")},
+    payload=(ExpertAgentRequest, "Agent task request"),
+    responses={200: (ExpertAgentResponse, "Aggregated agent response")},
 )
 
 __mcp__ = event_tool_api(
     summary="example-agents: expert agent",
-    payload=(AgentRequest, "Agent task description"),
-    response=(AgentResponse, "Aggregated agent response"),
+    payload=(ExpertAgentRequest, "Agent task description"),
+    response=(ExpertAgentResponse, "Aggregated agent response"),
 )
 
 
-async def run_agent(payload: AgentRequest, context: EventContext) -> AgentResponse:
-    """Execute the agent loop: model completion, optional tool calls."""
+async def init_conversation(payload: ExpertAgentRequest, context: EventContext) -> AgentLoopPayload:
+    """Prepare the expert agent conversation and tool configuration."""
     agent_settings = context.settings(key="expert_agent_llm", datatype=AgentSettings)
-    mcp_settings = context.settings(key="mcp_client_example_tools", datatype=BridgeConfig)
-    tool_prompt, tools = await bridge_resolve_tool_prompt(
+    mcp_settings = context.settings(key="mcp_client_example_tools", datatype=MCPClientConfig)
+    tool_prompt, tools = await resolve_tool_prompt(
         mcp_settings,
         context,
-        agent_id=payload.agent_id,
+        agent_id="latest",
         enable_tools=agent_settings.enable_tools,
         template=agent_settings.tool_prompt_template,
         include_schemas=agent_settings.include_tool_schemas_in_prompt,
     )
     completion_config = CompletionConfig(available_tools=tools)
+    result_schema = _datatype_schema("", ExpertAgentResults)
     conversation = build_conversation(
-        payload.conversation,
+        None,
         user_message=payload.user_message,
-        system_prompt=agent_settings.system_prompt,
+        system_prompt=agent_settings.system_prompt.replace(
+            "{expert-agent-results-schema}",
+            "```" + Payload.to_json(result_schema, indent=2) + "```",
+        ),
         tool_prompt=tool_prompt,
     )
-
-    for n_turn in range(0, 10):
-        model_request = CompletionRequest(conversation=conversation, config=completion_config)
-
-        try:
-            completion = await model_generate.generate(model_request, context)
-            conversation = completion.conversation
-
-            print("===========================================================")
-            print(n_turn, len(conversation.messages))
-            print("\n".join(f"{x.role}: {x.content}" for x in conversation.messages))
-            print("===========================================================")
-
-            tool_call_records: list[ToolCallRecord] = []
-
-            if agent_settings.enable_tools and completion.tool_calls:
-                tool_call_records = await bridge_execute_tool_calls(
-                    mcp_settings,
-                    context,
-                    tool_calls=[
-                        ToolInvocation(
-                            tool_name=tc.function.name,
-                            payload=Payload.from_json(
-                                tc.function.arguments, datatype=dict[str, Any]
-                            ),
-                            call_id=tc.id,
-                            session_id=payload.agent_id,  # TODO: session_id?
-                        )
-                        for tc in completion.tool_calls
-                    ],
-                    session_id=payload.agent_id,  # TODO: session_id?
-                )
-
-                for record in tool_call_records:
-                    conversation = conversation.with_message(
-                        Message(
-                            role=Role.TOOL,
-                            content=_format_tool_result(record.response),
-                            tool_call_id=record.request.tool_call_id,
-                            name=record.request.tool_name,
-                        ),
-                    )
-            elif not completion.message.content:
-                # Keep going if last assistant message is empty
-                continue
-            else:
-                # Finish tool call loop an return response
-                break
-
-        # In case of error, usually parsing LLM response, keep looping to fix it
-        except ModelClientError as e:
-            conversation = conversation.with_message(
-                Message(role=Role.SYSTEM, content=f"Error parsing response: {e}")
-            )
-    # end loop
-
-    response = AgentResponse(
-        agent_id=payload.agent_id,
+    return AgentLoopPayload(
         conversation=conversation,
-        assistant_message=completion.message,
-        tool_calls=tool_call_records,
+        completion_config=completion_config,
+        loop_config=AgentLoopConfig(max_iterations=10),
+        agent_settings=agent_settings,
+        mcp_settings=mcp_settings,
     )
 
-    logger.info(
-        context,
-        "agent_run_completed",
-        extra=extra(
-            agent_id=payload.agent_id,
-            tool_call_count=len(tool_call_records),
-            tool_calls=[
-                {
-                    "tool_call_id": record.request.tool_call_id,
-                    "tool_name": record.request.tool_name,
-                    "status": record.response.status.value,
-                }
-                for record in tool_call_records
-            ],
-            finish_reason=completion.finish_reason,
-        ),
-    )
+
+async def result(payload: AgentLoopResult, context: EventContext) -> ExpertAgentResponse:
+    """Convert the last loop message into an expert agent response payload."""
+    try:
+        last_message = payload.conversation.messages[-1]
+
+        response = ExpertAgentResponse(
+            conversation_id=payload.conversation.conversation_id,
+            results=Payload.from_json(last_message.content or "", datatype=ExpertAgentResults)
+            if last_message.role == Role.ASSISTANT
+            else None,
+            tool_calls=payload.tool_call_log,
+            error=str(last_message.content or "") if last_message.role == Role.SYSTEM else None,
+        )
+
+    except Exception as e:
+        response = ExpertAgentResponse(
+            conversation_id=payload.conversation.conversation_id,
+            results=None,
+            error=str(e),
+            assistant_message=last_message,
+            tool_calls=payload.tool_call_log,
+        )
+
     return response
-
-
-def _format_tool_result(result: ToolExecutionResult) -> str:
-    if result.structured_content is not None:
-        return Payload.to_json(result.structured_content, indent=2)
-    return Payload.to_json(result.content, indent=2)

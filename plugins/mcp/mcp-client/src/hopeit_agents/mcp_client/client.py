@@ -12,7 +12,7 @@ from mcp import ClientSession, McpError, StdioServerParameters, stdio_client, ty
 from mcp.client.streamable_http import streamablehttp_client
 
 from hopeit_agents.mcp_client.models import (
-    BridgeConfig,
+    MCPClientConfig,
     ToolAnnotations,
     ToolDescriptor,
     ToolExecutionResult,
@@ -23,7 +23,7 @@ from hopeit_agents.mcp_client.models import (
 
 @dataclass
 class MCPClientError(RuntimeError):
-    """Raised when bridge operations fail."""
+    """Raised when client operations fail."""
 
     message: str
     details: Mapping[str, Any] | None = None
@@ -35,7 +35,7 @@ class MCPClientError(RuntimeError):
 class MCPClient:
     """High-level wrapper over the official MCP SDK."""
 
-    def __init__(self, config: BridgeConfig, env: Mapping[str, str] | None = None) -> None:
+    def __init__(self, config: MCPClientConfig, env: Mapping[str, str] | None = None) -> None:
         self._config = config
         self._env = dict(env or {})
         self._tools_cache: tuple[float, list[ToolDescriptor]] | None = None
@@ -102,6 +102,7 @@ class MCPClient:
 
     @asynccontextmanager
     async def _session(self) -> AsyncIterator[ClientSession]:
+        """Yield an initialised MCP client session using the configured transport."""
         transport = self._config.transport
         if transport is Transport.HTTP:
             url = self._config.url
@@ -143,6 +144,7 @@ class MCPClient:
 
     @staticmethod
     def _tool_from_mcp(tool: types.Tool) -> ToolDescriptor:
+        """Map an MCP tool descriptor into the internal dataclass representation."""
         return ToolDescriptor(
             name=tool.name,
             title=tool.title,
@@ -161,6 +163,7 @@ class MCPClient:
     def _tool_result_from_mcp(
         tool_name: str, result: types.CallToolResult, *, call_id: str, session_id: str | None
     ) -> ToolExecutionResult:
+        """Convert an MCP tool response into the high-level execution result schema."""
         content: list[dict[str, Any]] = []
         for item in result.content:
             if hasattr(item, "model_dump"):

@@ -1,7 +1,6 @@
 """Integration test that exercises the MCP server over HTTP with example tools."""
 
 import asyncio
-import os
 from collections.abc import AsyncGenerator
 from contextlib import suppress
 
@@ -12,7 +11,7 @@ from mcp.client.streamable_http import streamablehttp_client
 
 from hopeit_agents.mcp_client.client import MCPClient
 from hopeit_agents.mcp_client.models import (
-    BridgeConfig,
+    MCPClientConfig,
     ToolExecutionStatus,
     Transport,
 )
@@ -29,6 +28,7 @@ _CONFIG_FILES = [
 
 
 async def _wait_for_server_start(server: uvicorn.Server, timeout: float = 10.0) -> None:
+    """Poll the uvicorn server until it signals readiness or a timeout expires."""
     loop = asyncio.get_running_loop()
     deadline = loop.time() + timeout
     while not server.started:
@@ -38,6 +38,7 @@ async def _wait_for_server_start(server: uvicorn.Server, timeout: float = 10.0) 
 
 
 def _server_port(server: uvicorn.Server) -> int:
+    """Return the bound TCP port for the given uvicorn server instance."""
     sockets = [sock for http_server in server.servers or [] for sock in (http_server.sockets or [])]
     if not sockets:
         raise RuntimeError("MCP server sockets not bound.")
@@ -46,8 +47,7 @@ def _server_port(server: uvicorn.Server) -> int:
 
 @pytest.fixture
 async def mcp_http_endpoint() -> AsyncGenerator[tuple[str, int], None]:
-    os.environ.setdefault("MCP_RANDOM_SEED", "1234")
-    # config_paths = [str(_REPO_ROOT / path) for path in _CONFIG_FILES]
+    """Host the MCP HTTP app on an ephemeral port for the duration of a test."""
     app = mcp_server._create_http_app(
         config_files=_CONFIG_FILES,
         enabled_groups=[],
@@ -92,8 +92,9 @@ async def mcp_http_endpoint() -> AsyncGenerator[tuple[str, int], None]:
 
 
 async def test_mcp_server_serves_example_tools(mcp_http_endpoint: tuple[str, int]) -> None:
+    """Verify the MCP server can list and invoke the bundled example tools."""
     host, port = mcp_http_endpoint
-    bridge_config = BridgeConfig(
+    client_config = MCPClientConfig(
         transport=Transport.HTTP,
         host=host,
         port=port,
@@ -101,7 +102,7 @@ async def test_mcp_server_serves_example_tools(mcp_http_endpoint: tuple[str, int
         list_timeout_seconds=5.0,
         call_timeout_seconds=10.0,
     )
-    client = MCPClient(config=bridge_config, env={"MCP_RANDOM_SEED": "1234"})
+    client = MCPClient(config=client_config, env={"MCP_RANDOM_SEED": "1234"})
 
     tools = await client.list_tools()
     names = {tool.name for tool in tools}
@@ -133,6 +134,7 @@ async def test_mcp_server_serves_example_tools(mcp_http_endpoint: tuple[str, int
 async def test_mcp_server_returns_method_not_found_for_unknown_tool(
     mcp_http_endpoint: tuple[str, int],
 ) -> None:
+    """Ensure the server returns an error when clients call an unknown tool."""
     host, port = mcp_http_endpoint
     url = f"http://{host}:{port}/mcp"
 

@@ -1,3 +1,5 @@
+"""HTTP-facing MCP server that exposes hopeit events as tools."""
+
 import asyncio
 import gc
 import logging
@@ -82,6 +84,7 @@ def _create_http_app(
     enabled_groups: list[str],
     start_streams: bool,
 ) -> Starlette:
+    """Construct the Starlette application that fronts the MCP session manager."""
     session_manager = StreamableHTTPSessionManager(mcp_server)
 
     @asynccontextmanager
@@ -168,7 +171,8 @@ async def prepare_engine(
 
     # Register MCP tools
     logger.info(__name__, "Registering tools...")
-    register_tool_handlers(apps_config)
+    handler.reset()
+    register_tool_handlers(apps_config, enabled_groups=enabled_groups)
 
     # web_server.on_shutdown.append(_shutdown_hook)
     logger.debug(__name__, "Performing forced garbage collection...")
@@ -182,12 +186,12 @@ def init_logger() -> None:
     handler.init_logger()
 
 
-def register_tool_handlers(apps_config: list[AppConfig]) -> None:
+def register_tool_handlers(apps_config: list[AppConfig], *, enabled_groups: list[str]) -> None:
     """Register tool handlers for app and plugin events exposed through MCP."""
     apps_config_by_key = {config.app.app_key(): config for config in apps_config}
     for app_config in apps_config:
         app_engine = runtime.server.app_engine(app_key=app_config.app_key())
-        for info in tools_api.extract_app_tool_specs(app_config):
+        for info in tools_api.extract_app_tool_specs(app_config, enabled_groups=enabled_groups):
             handler.register_tool(
                 info.tool,
                 app_engine,
@@ -198,7 +202,9 @@ def register_tool_handlers(apps_config: list[AppConfig]) -> None:
         for plugin in app_config.plugins:
             plugin_config = apps_config_by_key[plugin.app_key()]
             plugin_engine = runtime.server.app_engine(app_key=plugin_config.app_key())
-            for info in tools_api.extract_app_tool_specs(app_config, plugin_config):
+            for info in tools_api.extract_app_tool_specs(
+                app_config, plugin=plugin_config, enabled_groups=enabled_groups
+            ):
                 handler.register_tool(
                     info.tool,
                     app_engine,
@@ -216,6 +222,7 @@ async def server_startup_hook(config: ServerConfig) -> None:
 async def stop_server() -> None:
     """Shut down the hopeit runtime server."""
     await runtime.server.stop()
+    handler.reset()
 
 
 async def app_startup_hook(config: AppConfig, enabled_groups: list[str]) -> None:
@@ -248,16 +255,12 @@ def stream_startup_hook(app_config: AppConfig) -> None:
 
 
 def _load_engine_config(path: str) -> ServerConfig:
-    """
-    Load engine configuration from json file
-    """
+    """Load the hopeit server configuration from the provided JSON file."""
     with open(path, encoding="utf-8") as f:
         return parse_server_config_json(f.read())
 
 
 def _load_app_config(path: str) -> AppConfig:
-    """
-    Load app configuration from json file
-    """
+    """Load an app configuration from the provided JSON file."""
     with open(path, encoding="utf-8") as f:
         return parse_app_config_json(f.read())
