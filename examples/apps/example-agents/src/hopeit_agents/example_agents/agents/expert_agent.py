@@ -1,17 +1,24 @@
-"""Expert agent event that orchestrates a tool-enabled conversation."""
+"""Agent that can receive expressions with numbers and variables, creates random numbers
+for the variables and solve sums
+"""
 
 from hopeit.app.api import event_api
 from hopeit.app.context import EventContext
 from hopeit.app.logger import app_extra_logger
 from hopeit.dataobjects.payload import Payload
 
+from hopeit_agents.agent_toolkit.agents.agent_config import create_agent_config
+from hopeit_agents.agent_toolkit.agents.prompts import render_prompt
 from hopeit_agents.agent_toolkit.app.steps.agent_loop import (
     AgentLoopConfig,
     AgentLoopPayload,
     AgentLoopResult,
     agent_with_tools_loop,
 )
-from hopeit_agents.agent_toolkit.mcp.agent_tools import resolve_tool_prompt
+from hopeit_agents.agent_toolkit.mcp.agent_tools import (
+    resolve_tools,
+    tool_descriptions,
+)
 from hopeit_agents.agent_toolkit.settings import AgentSettings
 from hopeit_agents.example_agents.models import (
     ExpertAgentRequest,
@@ -31,13 +38,12 @@ logger, extra = app_extra_logger()
 __steps__ = ["init_conversation", agent_with_tools_loop.__name__, "result"]
 
 __api__ = event_api(
-    summary="example-agents: expert agent",
+    summary="example-agents: expert agent that can generate random number an solve sums",
     payload=(ExpertAgentRequest, "Agent task request"),
     responses={200: (ExpertAgentResponse, "Aggregated agent response")},
 )
 
 __mcp__ = event_tool_api(
-    summary="example-agents: expert agent",
     payload=(ExpertAgentRequest, "Agent task description"),
     response=(ExpertAgentResponse, "Aggregated agent response"),
 )
@@ -47,24 +53,41 @@ async def init_conversation(payload: ExpertAgentRequest, context: EventContext) 
     """Prepare the expert agent conversation and tool configuration."""
     agent_settings = context.settings(key="expert_agent_llm", datatype=AgentSettings)
     mcp_settings = context.settings(key="mcp_client_example_tools", datatype=MCPClientConfig)
-    tool_prompt, tools = await resolve_tool_prompt(
+
+    with open(agent_settings.system_prompt_template) as f:
+        system_prompt_template = f.read()
+    with open(agent_settings.tool_prompt_template) as f:
+        tool_prompt_template = f.read()
+
+    agent_config = create_agent_config(
+        name=agent_settings.agent_name,
+        prompt_template=system_prompt_template,
+        variables={},
+        enable_tools=True,
+        tools=agent_settings.allowed_tools,
+        tool_prompt_template=tool_prompt_template,
+    )
+    tools = await resolve_tools(
         mcp_settings,
         context,
-        agent_id="latest",
-        enable_tools=agent_settings.enable_tools,
-        template=agent_settings.tool_prompt_template,
-        include_schemas=agent_settings.include_tool_schemas_in_prompt,
+        agent_id=agent_config.key,
+        allowed_tools=agent_config.tools,
     )
     completion_config = CompletionConfig(available_tools=tools)
     result_schema = _datatype_schema("", ExpertAgentResults)
     conversation = build_conversation(
         None,
         user_message=payload.user_message,
-        system_prompt=agent_settings.system_prompt.replace(
-            "{expert-agent-results-schema}",
-            "```" + Payload.to_json(result_schema, indent=2) + "```",
+        system_prompt=render_prompt(
+            agent_config,
+            {
+                "expert_agent_result_schema": Payload.to_json(result_schema),
+                "tool_descriptions": tool_descriptions(
+                    tools, include_schemas=agent_settings.include_tool_schemas_in_prompt
+                ),
+            },
+            include_tools=agent_config.enable_tools,
         ),
-        tool_prompt=tool_prompt,
     )
     return AgentLoopPayload(
         conversation=conversation,
