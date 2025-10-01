@@ -46,7 +46,8 @@
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": false
-    },    {
+    },
+    {
       "name": "mcp_server",
       "type": "debugpy",
       "request": "launch",
@@ -61,13 +62,26 @@
         "plugins/mcp/mcp-server/config/dev-noauth.json,plugins/mcp/mcp-server/config/plugin-config.json,examples/plugins/example-tool/config/plugin-config.json"
       ],
       "cwd": "${workspaceFolder}",
-      "env": {
-        "MCP_RANDOM_SEED": "1234"
-      },
       "console": "integratedTerminal",
       "justMyCode": false
     },
-        {
+    {
+      "name": "mcp_server_stdio",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "hopeit_agents.mcp_server.cli.server",
+      "args": [
+        "run",        
+        "--transport",
+        "stdio",        
+        "--config-files",
+        "plugins/mcp/mcp-server/config/dev-noauth.json,plugins/mcp/mcp-server/config/plugin-config.json,examples/plugins/example-tool/config/plugin-config.json"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
       "name": "mcp_client",
       "type": "debugpy",
       "request": "launch",
@@ -83,9 +97,6 @@
         "mcp_client;mcp_client;1.0"
       ],
       "cwd": "${workspaceFolder}",
-      "env": {
-        "MCP_RANDOM_SEED": "1234"
-      },
       "console": "integratedTerminal",
       "justMyCode": false
     }
