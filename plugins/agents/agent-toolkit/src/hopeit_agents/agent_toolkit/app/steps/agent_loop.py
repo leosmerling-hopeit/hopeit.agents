@@ -3,7 +3,7 @@
 from typing import Any
 
 from hopeit.app.context import EventContext
-from hopeit.dataobjects import dataclass, dataobject
+from hopeit.dataobjects import dataclass, dataobject, field
 from hopeit.dataobjects.payload import Payload
 
 from hopeit_agents.agent_toolkit.mcp.agent_tools import (
@@ -47,6 +47,7 @@ class AgentLoopPayload:
     loop_config: AgentLoopConfig
     agent_settings: AgentSettings
     mcp_settings: MCPClientConfig
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 @dataobject
@@ -57,6 +58,7 @@ class AgentLoopResult:
     conversation: Conversation
     user_context: dict[str, Any]
     tool_call_log: list[ToolCallRecord]
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 async def agent_with_tools_loop(
@@ -142,7 +144,10 @@ async def agent_with_tools_loop(
             )
     # end loop
     return AgentLoopResult(
-        conversation=conversation, user_context=payload.user_context, tool_call_log=tool_call_log
+        conversation=conversation,
+        user_context=payload.user_context,
+        tool_call_log=tool_call_log,
+        metadata=payload.metadata,
     )
 
 
