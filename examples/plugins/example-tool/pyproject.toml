@@ -1,6 +1,6 @@
 [project]
 name = "hopeit_agents-example-tool"
-version = "0.1.0"
+version = "0.1.0b1"
 
 description = "Example MCP-compatible tool implemented as a hopeit.engine plugin"
 dynamic = ["readme"]

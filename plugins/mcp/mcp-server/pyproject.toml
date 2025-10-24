@@ -1,6 +1,6 @@
 [project]
 name = "hopeit-agents.mcp-server"
-version = "0.1.0"
+version = "0.1.0b1"
 
 description = "Hopeit Agents: Model Context Protocol server"
 dynamic = ["readme"]
@@ -19,6 +19,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Intended Audience :: Developers",
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Development Status :: 3 - Alpha",
