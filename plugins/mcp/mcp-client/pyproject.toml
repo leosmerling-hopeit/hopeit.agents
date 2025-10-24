@@ -1,6 +1,6 @@
 [project]
 name = "hopeit-agents.mcp-client"
-version = "0.1.0b1"
+version = "0.1.0b2"
 
 description = "Hopeit Agents: Model Context Protocol tools client"
 dynamic = ["readme"]

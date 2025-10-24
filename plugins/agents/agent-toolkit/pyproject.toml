@@ -1,6 +1,6 @@
 [project]
 name = "hopeit-agents.agent-toolkit"
-version = "0.1.0"
+version = "0.1.0b2"
 
 description = "Hopeit Agents: Agent Toolkit plugin"
 dynamic = ["readme"]
