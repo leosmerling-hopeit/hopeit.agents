@@ -1,6 +1,6 @@
 [project]
 name = "hopeit-agents-example-agents"
-version = "0.1.0b1"
+version = "0.1.0b2"
 
 description = "Example MCP-compatible agents implemented as a hopeit.engine app"
 dynamic = ["readme"]
