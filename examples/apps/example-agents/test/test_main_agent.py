@@ -1,29 +1,35 @@
-"""Integration tests that exercise the example random number tool."""
+"""Tests for main-agent planning and random dependency injection."""
 
 import pytest
-from hopeit.testing.apps import config, execute_event
+from pydantic_ai.models.test import TestModel
 
-from hopeit_agents.example_tool.models import (
-    MinMaxRange,
-    RandomNumberRequest,
-    RandomNumberResponse,
-    RandomNumberResult,
-)
-from hopeit_agents.example_tool.tool import generate_random
+from hopeit_agents.example_agents.agents.main_agent import ExpressionPlan, create_main_agent
+from hopeit_agents.example_agents.tools import random_integer
+
+
+def test_random_integer_is_deterministic_and_normalizes_bounds() -> None:
+    calls: list[tuple[int, int]] = []
+
+    def source(minimum: int, maximum: int) -> int:
+        calls.append((minimum, maximum))
+        return 7
+
+    assert random_integer(10, 2, source=source) == 7
+    assert calls == [(2, 10)]
 
 
 @pytest.mark.asyncio
-async def test_generate_random_returns_expected(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify the random tool returns the stubbed randint result."""
-    monkeypatch.setattr(
-        generate_random.random,  # type: ignore[attr-defined]
-        "randint",
-        lambda *_args, **_kwargs: 7,
+async def test_main_agent_returns_typed_expression_plan_without_tools() -> None:
+    main_model = TestModel(
+        custom_output_args={"expression": "x + 2"},
     )
-
-    app_config = config("examples/plugins/example-tool/config/plugin-config.json")
-    response = await execute_event(
-        app_config, "tool.generate_random", RandomNumberRequest(MinMaxRange(min=0, max=10))
+    agent = create_main_agent(
+        main_model,
+        "Return a typed expression plan without evaluating it.",
     )
+    result = await agent.run("Add 2 to a random integer.")
 
-    assert response == RandomNumberResponse(result=RandomNumberResult(value=7))
+    assert isinstance(result.output, ExpressionPlan)
+    assert result.output.expression == "x + 2"
+    assert main_model.last_model_request_parameters is not None
+    assert main_model.last_model_request_parameters.function_tools == []

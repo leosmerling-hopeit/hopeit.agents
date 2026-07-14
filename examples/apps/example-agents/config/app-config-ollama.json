@@ -20,10 +20,10 @@
       "ssl": false
     },
     "agent_model": {
-      "provider": "openai",
-      "model_name": "${OPENAI_MODEL_NAME}",
-      "base_url": null,
-      "api_key_env": "OPENAI_API_KEY"
+      "provider": "ollama",
+      "model_name": "${OLLAMA_MODEL_NAME}",
+      "base_url": "http://localhost:11434/v1",
+      "api_key_env": "OLLAMA_API_KEY"
     },
     "main_agent": {
       "instructions_path": "examples/apps/example-agents/config/agents/main-agent-prompt.md",

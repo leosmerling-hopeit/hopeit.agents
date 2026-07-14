@@ -1,1 +1,1 @@
-"""Example MCP tool plugin."""
+"""Hopeit application demonstrating sequential agent workflows and tools."""

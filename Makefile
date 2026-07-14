@@ -1,4 +1,5 @@
-.PHONY: env clean-env deps format lint test publish-plugin-pypi publish-plugin-pypi-test
+.PHONY: env clean-env sync-dev install-dev-nosync install-dev format lint test ci \
+	check-plugin-folder clean-dist-plugin dist-plugin publish-plugin-pypi publish-plugin-pypi-test
 
 PYTHONVERSION ?= 3.12
 
@@ -6,24 +7,12 @@ UV = UV_CACHE_DIR=.uv-cache uv
 UV_RUN = $(UV) run --no-sync
 
 MODULES = \
-	plugins/agents/agent-toolkit \
-	plugins/agents/skills \
-	plugins/agents/model-client \
-	plugins/mcp/mcp-server \
-	plugins/mcp/mcp-client \
-	examples/apps/example-agents \
-	examples/plugins/example-skills \
-	examples/plugins/example-tool
+	plugins/agents \
+	examples/apps/example-agents
 
 MYPY_TARGETS = \
-	plugins/agents/agent-toolkit:hopeit_agents.agent_toolkit \
-	plugins/agents/skills:hopeit_agents.skills \
-	plugins/agents/model-client:hopeit_agents.model_client \
-	plugins/mcp/mcp-server:hopeit_agents.mcp_server \
-	plugins/mcp/mcp-client:hopeit_agents.mcp_client \
-	examples/apps/example-agents:hopeit_agents.example_agents \
-	examples/plugins/example-skills:hopeit_agents.example_skills \
-	examples/plugins/example-tool:hopeit_agents.example_tool
+	plugins/agents:hopeit_agents.agent_model \
+	examples/apps/example-agents:hopeit_agents.example_agents
 
 env:
 	$(UV) venv --seed --python $(PYTHONVERSION)
@@ -52,7 +41,7 @@ format:
 lint:
 	$(UV_RUN) ruff format --check $(MODULES:%=%/src/) $(MODULES:%=%/test/)
 	$(UV_RUN) ruff check $(MODULES:%=%/src/) $(MODULES:%=%/test/)
-	for target in $(MYPY_TARGETS); do \
+	set -e; for target in $(MYPY_TARGETS); do \
 		module=$${target%%:*}; \
 		package=$${target##*:}; \
 		PYTHONPATH=$$module/src MYPYPATH=$$module/src $(UV_RUN) mypy --namespace-packages -p $$package; \
@@ -60,7 +49,7 @@ lint:
 	done
 
 test:
-	for module in $(MODULES); do \
+	set -e; for module in $(MODULES); do \
 		PYTHONPATH=$$module/src $(UV_RUN) pytest -v $$module/test; \
 	done
 
@@ -71,7 +60,7 @@ ci:
 
 check-plugin-folder:
 	@if [ -z "$(PLUGINFOLDER)" ]; then \
-		echo "PLUGINFOLDER must be provided, e.g. 'make dist-plugin PLUGINFOLDER=plugins/mcp/mcp-server'"; \
+		echo "PLUGINFOLDER must be provided, e.g. 'make dist-plugin PLUGINFOLDER=plugins/agents'"; \
 		exit 1; \
 	fi
 	@if [ ! -d "$(PLUGINFOLDER)" ]; then \

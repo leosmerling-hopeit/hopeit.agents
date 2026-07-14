@@ -1,99 +1,181 @@
-"""Main agent event that coordinates the tool-enabled agent loop."""
+"""Sequential Hopeit workflow coordinating the main and expert agents."""
+
+import json
+from typing import Any, cast
 
 from hopeit.app.api import event_api
+from hopeit.app.client import app_call
 from hopeit.app.context import EventContext
-from hopeit.app.logger import app_extra_logger
+from hopeit.dataobjects import dataclass, dataobject
+from pydantic_ai import Agent, AgentRetries
+from pydantic_ai.models import Model
 
-from hopeit_agents.agent_toolkit.agents.agent_config import create_agent_config
-from hopeit_agents.agent_toolkit.agents.prompts import render_prompt
-from hopeit_agents.agent_toolkit.app.steps.agent_loop import (
-    AgentLoopConfig,
-    AgentLoopPayload,
-    AgentLoopResult,
-    agent_with_tools_loop,
+from hopeit_agents.agent_model import SETTINGS_KEY, AgentModelSettings, build_agent_model
+from hopeit_agents.example_agents.models import (
+    AgentRequest,
+    AgentResponse,
+    AgentUsage,
+    ExpertAgentResponse,
+    ExpertAgentResults,
+    agent_usage,
+    combine_usage,
 )
-from hopeit_agents.agent_toolkit.mcp.agent_tools import (
-    resolve_tools,
-    tool_descriptions,
+from hopeit_agents.example_agents.settings import (
+    AgentRunSettings,
+    agent_retries,
+    load_instructions,
+    usage_limits,
 )
-from hopeit_agents.agent_toolkit.settings import AgentSettings
-from hopeit_agents.example_agents.models import AgentRequest, AgentResponse
-from hopeit_agents.mcp_client.models import MCPClientConfig
-from hopeit_agents.model_client.conversation import build_conversation
-from hopeit_agents.model_client.models import CompletionConfig
 
-logger, extra = app_extra_logger()
+MAIN_SETTINGS_KEY = "main_agent"
+EXPERT_AGENT_CONNECTION = "expert-agent"
+EXPERT_AGENT_EVENT = "agents.expert_agent"
 
-
-__steps__ = ["init_conversation", agent_with_tools_loop.__name__, "result"]
-
+__steps__ = ["prepare_agent", "plan_expression", "call_expert_agent", "build_response"]
 
 __api__ = event_api(
-    summary="example-agents: main agent",
-    payload=(AgentRequest, "Agent task description"),
-    responses={200: (AgentResponse, "Aggregated agent response")},
+    summary="Solve a natural-language integer addition task through agent delegation",
+    payload=(AgentRequest, "Natural-language agent task"),
+    responses={200: (AgentResponse, "Main-agent answer and canonical history")},
 )
 
 
-async def init_conversation(payload: AgentRequest, context: EventContext) -> AgentLoopPayload:
-    """Build the initial conversation and tool prompt for the main agent."""
-    agent_settings: AgentSettings = context.settings(key="main_agent_llm", datatype=AgentSettings)
-    mcp_settings: MCPClientConfig = context.settings(
-        key="sub_agents_mcp_client", datatype=MCPClientConfig
+@dataobject
+@dataclass
+class ExpressionPlan:
+    """Typed output passed from the main agent to the expert agent."""
+
+    expression: str
+
+
+@dataobject
+@dataclass
+class PreparedMainAgent:
+    """Serializable configuration for the main-agent planning step."""
+
+    request: AgentRequest
+    model_settings: AgentModelSettings
+    main_settings: AgentRunSettings
+    main_instructions: str
+
+
+@dataobject
+@dataclass
+class ExpertAgentTask:
+    """Typed hand-off from the main agent step to the expert agent step."""
+
+    expression: str
+    conversation_id: str
+    metadata: dict[str, Any]
+    main_history_json: str
+    main_usage: AgentUsage
+
+
+@dataobject
+@dataclass
+class MainAgentExecution:
+    """Serializable result passed to the final response step."""
+
+    expression: str
+    conversation_id: str
+    results: ExpertAgentResults
+    history_json: str
+    usage: AgentUsage
+
+
+def create_main_agent(
+    model: Model,
+    instructions: str,
+    *,
+    retries: AgentRetries | None = None,
+) -> Agent[None, ExpressionPlan]:
+    """Create the main agent that produces a typed expert-agent task."""
+    return Agent(
+        model,
+        name="main_agent",
+        output_type=ExpressionPlan,
+        instructions=instructions,
+        retries=retries,
     )
 
-    assert agent_settings.system_prompt_template, "missing system_prompt_template"
-    assert agent_settings.tool_prompt_template, "missing tool_prompt_template"
 
-    with open(agent_settings.system_prompt_template) as f:
-        system_prompt_template = f.read()
-    with open(agent_settings.tool_prompt_template) as f:
-        tool_prompt_template = f.read()
+async def prepare_agent(payload: AgentRequest, context: EventContext) -> PreparedMainAgent:
+    """Resolve the main agent's settings before executing its workflow."""
+    main_settings = context.settings(key=MAIN_SETTINGS_KEY, datatype=AgentRunSettings)
+    return PreparedMainAgent(
+        request=payload,
+        model_settings=context.settings(key=SETTINGS_KEY, datatype=AgentModelSettings),
+        main_settings=main_settings,
+        main_instructions=load_instructions(main_settings),
+    )
 
-    agent_config = create_agent_config(
-        name=agent_settings.agent_name,
-        prompt_template=system_prompt_template,
-        variables={},
-        enable_tools=True,
-        tools=agent_settings.allowed_tools,
-        tool_prompt_template=tool_prompt_template,
+
+async def plan_expression(
+    payload: PreparedMainAgent,
+    context: EventContext,
+) -> ExpertAgentTask:
+    """Run the main agent and pass its typed expression to the expert step."""
+    agent = create_main_agent(
+        build_agent_model(payload.model_settings),
+        payload.main_instructions,
+        retries=agent_retries(payload.main_settings),
     )
-    tools = await resolve_tools(
-        mcp_settings,
-        context,
-        agent_id=agent_config.key,
-        allowed_tools=agent_config.tools,
+    result = await agent.run(
+        payload.request.user_message,
+        usage_limits=usage_limits(payload.main_settings),
+        conversation_id=payload.request.conversation_id,
+        metadata=payload.request.metadata,
     )
-    completion_config = CompletionConfig(available_tools=tools)
-    conversation = build_conversation(
-        existing=None,
-        message=payload.user_message,
-        system_prompt=render_prompt(
-            agent_config,
-            {
-                "tool_descriptions": tool_descriptions(
-                    tools, include_schemas=agent_settings.include_tool_schemas_in_prompt
-                )
-            },
-            include_tools=agent_config.enable_tools,
+    return ExpertAgentTask(
+        expression=result.output.expression,
+        conversation_id=result.conversation_id,
+        metadata=payload.request.metadata,
+        main_history_json=result.all_messages_json().decode("utf-8"),
+        main_usage=agent_usage(result.usage),
+    )
+
+
+async def call_expert_agent(
+    payload: ExpertAgentTask,
+    context: EventContext,
+) -> MainAgentExecution:
+    """Invoke the independently addressable expert-agent Hopeit event."""
+    result = cast(
+        ExpertAgentResponse,
+        await app_call(
+            EXPERT_AGENT_CONNECTION,
+            event=EXPERT_AGENT_EVENT,
+            datatype=ExpertAgentResponse,
+            payload=AgentRequest(
+                user_message=payload.expression,
+                conversation_id=payload.conversation_id,
+                metadata=payload.metadata,
+            ),
+            context=context,
         ),
     )
-    return AgentLoopPayload(
-        conversation=conversation,
-        user_context={},
-        completion_config=completion_config,
-        loop_config=AgentLoopConfig(max_iterations=3),
-        agent_settings=agent_settings,
-        mcp_settings=mcp_settings,
+    history = [
+        *json.loads(payload.main_history_json),
+        *json.loads(result.history_json),
+    ]
+    return MainAgentExecution(
+        expression=payload.expression,
+        conversation_id=result.conversation_id,
+        results=result.results,
+        history_json=json.dumps(history),
+        usage=combine_usage(payload.main_usage, result.usage),
     )
 
 
-async def result(payload: AgentLoopResult, context: EventContext) -> AgentResponse:
-    """Wrap the final loop message and tool call log into a response object."""
-    last_message = payload.conversation.messages[-1]
-    response = AgentResponse(
-        conversation=payload.conversation,
-        assistant_message=last_message,
-        tool_calls=payload.tool_call_log,
+async def build_response(
+    payload: MainAgentExecution,
+    context: EventContext,
+) -> AgentResponse:
+    """Render the typed expert result as the public main-agent response."""
+    values = ", ".join(f"{item.expr} = {item.value}" for item in payload.results.expr_values)
+    return AgentResponse(
+        conversation_id=payload.conversation_id,
+        output=f"Expression `{payload.expression}` evaluated to: {values}",
+        history_json=payload.history_json,
+        usage=payload.usage,
     )
-    return response
